@@ -1,5 +1,4 @@
 #!/bin/bash
-sleep 2m
 
 BLACKLIST="/dev/vda|/dev/sda"
 DEV=($(sudo ls -1 /dev/vd*|egrep -v "${BLACKLIST}"|egrep -v "[0-9]$"))
@@ -38,10 +37,6 @@ add_to_fstab() {
     sudo mount "${MOUNTPOINT}"
 
 # Installing pre-reqs
-
-DOCKER_VERSION=17.03.1
-
 # Docker
-curl -Lo /tmp/docker.tgz \
-    https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}-ce.tgz
-sudo tar --extract --file /tmp/docker.tgz --strip-components 1 --directory /usr/local/bin/ >/dev/null 2>&1
+sudo apt update && apt install -y docker.io
+sudo usermod -aG docker ubuntu
