@@ -1,3 +1,15 @@
+variable "count" {
+  default = 1
+}
+
+variable "diskn" {
+  default = 1
+}
+
+variable "disk_size" {
+  default = 50
+}
+
 variable "openstack_user_name" {
     description = "The username for the Tenant."
     default  = "your user"
@@ -27,6 +39,12 @@ variable "tenant_network" {
     description = "The network to be used."
     default  = "public"
 }
+
+variable "network_id" {
+    description = "network id"
+    default = "baa13aba-35da-42e8-99ff-7aa9d48586e6"
+}
+
 
 variable "image_name" {
     description = "Glance image name."
