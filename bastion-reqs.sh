@@ -1,5 +1,4 @@
 #!/bin/bash
-
 BLACKLIST="/dev/vda|/dev/sda"
 DEV=($(sudo ls -1 /dev/vd*|egrep -v "${BLACKLIST}"|egrep -v "[0-9]$"))
 sudo mkdir /managed-k8s
