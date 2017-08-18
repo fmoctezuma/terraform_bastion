@@ -4,12 +4,6 @@ resource "openstack_blockstorage_volume_v2" "bastion_volume" {
   size  = "${var.disk_size}"
 }
 
-resource "openstack_networking_port_v2" "bastion_port" {
-  name           = "bastion_port"
-  admin_state_up = "true"
-  network_id = "${var.network_id}"
-}
-
 resource "openstack_compute_secgroup_v2" "bastion_secgroup" {
   name        = "bastion_secgroup"
   description = "Bastion Security Group"
@@ -29,48 +23,67 @@ resource "openstack_compute_secgroup_v2" "bastion_secgroup" {
   }
 }
 
+resource "tls_private_key" "ssh_key" {
+  algorithm = "RSA"
+}
+
+resource "openstack_compute_keypair_v2" "k8s_keypair" {
+  name       = "bastion_keypair"
+  public_key = "${tls_private_key.ssh_key.public_key_openssh}"
+}
+
+resource "null_resource" "export" {
+  provisioner "local-exec" {
+    command = "echo '${tls_private_key.ssh_key.private_key_pem}' >id_rsa_core && chmod 0600 id_rsa_core"
+  }
+
+  provisioner "local-exec" {
+    command = "echo '${tls_private_key.ssh_key.public_key_openssh}' >id_rsa_core.pub"
+  }
+}
+
 resource "openstack_compute_instance_v2" "bastion_server" {
-  count = "${var.count}"
-  name = "${format("bastion-server-%02d", count.index)}"
-  image_name = "${var.image_name}"
-  flavor_id = "${var.flavor_id}"
-  key_pair = "${var.openstack_keypair}"
+  count           = "${var.count}"
+  name            = "${format("bastion-server-%02d", count.index)}"
+  image_name      = "${var.image_name}"
+  flavor_name     = "${var.flavor_name}"
+  key_pair        = "${openstack_compute_keypair_v2.k8s_keypair.name}"
   security_groups = ["${openstack_compute_secgroup_v2.bastion_secgroup.name}"]
-  network {
+  
+    network {
     name = "${var.tenant_network}"
-    port = "${openstack_networking_port_v2.bastion_port.id}"
-    }
+  }
 
   provisioner "file" {
-    source    = "bastion-reqs.sh"
+    source      = "bastion-reqs.sh"
     destination = "/tmp/bastion-reqs.sh"
+  }
 
   connection {
-      type     = "ssh"
-      user     = "ubuntu"
-      private_key = "${var.private_key}"
-      }
-   }
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = "${tls_private_key.ssh_key.private_key_pem}"
   }
+}
 
 resource "openstack_compute_volume_attach_v2" "volume_attach" {
   instance_id = "${openstack_compute_instance_v2.bastion_server.*.id[count.index]}"
   volume_id   = "${openstack_blockstorage_volume_v2.bastion_volume.*.id[count.index]}"
-
 }
 
 resource "null_resource" "bastion_reqs" {
   depends_on = ["openstack_compute_volume_attach_v2.volume_attach"]
-  provisioner "remote-exec" {
-     inline = [
-     "sudo bash /tmp/bastion-reqs.sh",
-     ]
 
-  connection {
-    host = "${openstack_compute_instance_v2.bastion_server.network.0.fixed_ip_v4}"
-    type     = "ssh"
-    user     = "ubuntu"
-    private_key = "${var.private_key}"
-      }
-   }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo bash /tmp/bastion-reqs.sh",
+    ]
+
+    connection {
+      host        = "${openstack_compute_instance_v2.bastion_server.network.0.fixed_ip_v4}"
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = "${tls_private_key.ssh_key.private_key_pem}"
+    }
+  }
 }
