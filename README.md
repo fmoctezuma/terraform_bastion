@@ -1,4 +1,4 @@
 # Terraform_bastion
 
 ### Pre-reqs
-Terraform https://www.terraform.io/downloads.html
+[Terraform](https://www.terraform.io/downloads.html)
