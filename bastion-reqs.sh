@@ -14,7 +14,7 @@ MOUNTPOINT=/managed-k8s
 PARTITION=$(sudo fdisk -l ${DEV}|grep -A 1 Device|tail -n 1|awk '{print $1}')
         echo "Creating filesystem on ${PARTITION}."
         sudo mkfs -F -j -t ext4 ${PARTITION}
-        sudo mount ${PARTITION} ${MOUNTPOIN}
+        sudo mount ${PARTITION} ${MOUNTPOINT}
 
     read UUID FS_TYPE < <(sudo blkid -u filesystem ${PARTITION}|awk -F "[= ]" '{print $3" "$5}'|tr -d "\"")
 
@@ -37,5 +37,5 @@ add_to_fstab() {
 
 # Installing pre-reqs
 # Docker
-sudo apt update && apt install -y docker.io
+sudo apt update && apt install -y make docker.io
 sudo usermod -aG docker ubuntu
